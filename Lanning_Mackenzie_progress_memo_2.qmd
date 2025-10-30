@@ -1,0 +1,432 @@
+---
+title: "Progress Memo 2"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Mackenzie Lanning"
+pagetitle: "PM1 Mackenzie Lanning"
+date: 2024-11-23
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Lanning_Mackenzie_Progress_Memo_2](https://github.com/stat301-1-2024-fall/final-project-1-MLanning314)
+
+:::
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(knitr)
+```
+
+
+```{r}
+#| echo: false
+nfl_data <- read.csv("data/team_stats_2003_2023.csv")
+
+
+```
+
+## Data Explanation
+
+This data source I chose is from Kaggle and shows NFL data from 2003-2023 for all 32 teams in the league.^[[https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023)] The dataset contains averages for 35 variables commonly used in sports statistics such as turnovers, fumbles, touchdowns, and passing yards, among many others. These averages are taken over 21 seasons to provide a comprehensive view on how each team/conference is playing and their improvement rate over time. The dataset contains 3 different types of variables: strings, integers, and decimals.
+
+## Data Tidying
+
+To begin making the dataset a bit cleaner, I renamed certain variables that were labeled in a confusing way, such as `mov` (margin of victory) and `g` (games played). I also made a new variables called `conference` and `division` to show whether teams are in the NFC or AFC, and if they are in the west, east, north, or south division in their conference. This will make data analysis across conferences and divisions much more efficient and also allow for more trends to be explored. I also ensured that if teams have had more than one name in the past 20 years, all the data for that team is consolidated into one name (i.e. "Oakland Raiders" and "Las Vegas Raiders" will only have data under "Las Vegas Raiders). For the N/A values in margin of victory, I left them as N/A because giving them an arbitrary value, such as 0, would change the analysis of the data. However, I do not anticipate using margin of victory unless all teams for a given year have a value to ensure accuracy of results. Finally, I removed the `ties` variable, because many of the values for this were N/A, and with the new overtime rules in football, it will not be necessary for my data analysis.
+
+```{r}
+#| echo: false
+
+#rename confusing variables
+nfl_data_clean <- nfl_data |>
+  rename(games_played = g,
+         margin_of_victory = mov,
+         points_scored = points,
+         points_allowed = points_opp,
+         fumbles = fumbles_lost,
+         pass_completion = pass_cmp,
+         expected_points_offense = exp_pts_tot
+         )
+```
+
+
+```{r}
+#| echo: false 
+
+nfl_data_clean <- nfl_data_clean |>
+
+#create "conference" variable
+  mutate(conference = case_when(
+    # AFC Teams
+    team %in% c(
+      "Buffalo Bills", "Miami Dolphins", "New England Patriots", "New York Jets",
+      "Baltimore Ravens", "Cincinnati Bengals", "Cleveland Browns", "Pittsburgh Steelers",
+      "Houston Texans", "Indianapolis Colts", "Jacksonville Jaguars", "Tennessee Titans",
+      "Denver Broncos", "Kansas City Chiefs", "Las Vegas Raiders", "Oakland Raiders", "Los Angeles Chargers", "San Diego Chargers"
+    ) ~ "AFC",
+    
+    # NFC Teams
+    team %in% c(
+      "Dallas Cowboys", "New York Giants", "Philadelphia Eagles", "Washington Commanders", "Washington Redskins", "Washington Football Team",
+      "Chicago Bears", "Detroit Lions", "Green Bay Packers", "Minnesota Vikings",
+      "Atlanta Falcons", "Carolina Panthers", "New Orleans Saints", "Tampa Bay Buccaneers",
+      "Arizona Cardinals", "Los Angeles Rams", "San Francisco 49ers", "Seattle Seahawks", "St. Louis Rams"
+    ) ~ "NFC",
+    
+    # Default case for unexpected values
+    TRUE ~ NA_character_
+  ))
+```
+
+
+```{r}
+#| echo: false
+
+nfl_data_clean <- nfl_data_clean |>
+
+#create "division" variable
+  mutate(division = case_when(
+    # AFC North Teams
+    team %in% c(
+      "Baltimore Ravens", "Cincinnati Bengals", "Cleveland Browns", "Pittsburgh Steelers"
+    ) ~ "North",
+    
+    #AFC East Teams
+    team %in% c(
+      "Buffalo Bills", "Miami Dolphins", "New England Patriots", "New York Jets"
+    ) ~ "East",
+    
+    #AFC South Teams
+    team %in% c(
+      "Houston Texans", "Indianapolis Colts", "Jacksonville Jaguars", "Tennessee Titans"
+    ) ~ "South",
+    
+    #AFC West Teams
+    team %in% c(
+      "Denver Broncos", "Kansas City Chiefs", "Oakland Raiders", "Las Vegas Raiders", "Los Angeles Chargers", "San Diego Chargers"
+    ) ~ "West",
+    
+    # NFC North Teams
+    team %in% c(
+      "Chicago Bears", "Green Bay Packers", "Detroit Lions", "Minnesota Vikings"
+      ) ~ "North",
+    
+    #NFC East Teams
+    team %in% c(
+      "Dallas Cowboys", "New York Giants", "Philadelphia Eagles", "Washington Commanders", "Washington Redskins", "Washington Football Team"
+    ) ~ "East",
+    
+    #NFC South Teams
+    team %in% c(
+      "Atlanta Falcons", "Carolina Panthers", "New Orleans Saints", "Tampa Bay Buccaneers"
+    ) ~ "South",
+    
+    #NFC West Teams
+    team %in% c(
+      "Arizona Cardinals", "Los Angeles Rams", "St. Louis Rams", "San Francisco 49ers", "Seattle Seahawks"
+    ) ~ "West",
+    
+    # Default case for unexpected values
+    TRUE ~ NA_character_
+  ))
+```
+```{r}
+#| echo: false
+
+#combining data for teams with different names
+nfl_data_clean <- nfl_data_clean |>
+  mutate(team = case_when(
+    team %in% c("Oakland Raiders", "Las Vegas Raiders") ~ "Las Vegas Raiders", 
+    team %in% c("St. Louis Rams", "Los Angeles Rams") ~ "Los Angeles Rams",
+    team %in% c("Washington Commanders", "Washington Redskins", "Washington Football Team") ~ "Washington Commanders",
+    team %in% c("San Diego Chargers", "Los Angeles Chargers") ~ "Los Angeles Chargers",
+    TRUE ~ team # keep other teams unchanged
+  ))
+```
+
+```{r}
+#| echo: false
+
+#remove the "ties" variable
+nfl_data_clean <- nfl_data_clean |>
+  select(-ties)
+```
+
+## Exploratory Data Analysis (EDA)
+To determine which research questions I want to explore, I want to conduct an exploratory data analysis to determine correlation (or lack thereof) for different variables. This is especially important for my dataset because there are a lot of numerical variables that could relate to each other and allow me to answer certain questions.
+
+### General Trends in the NFL
+##### How have average points scored per season changed over time?
+I first wanted to see how average points scored per season have changed over time. With the increase in scholarship funds for college players, as well as new Name, Image, and Likeness (NIL) deals, I would predict that more talented football players are being recruited to play college football and signed to the NFL. There is a greater reward for playing well, and coaches across the country seek to improve their football teams in college, making it important to discover talent in high school. However, in recent years, the NFL on average has been scoring less, but there are no real predictions as to why.^[[NFL offenses aren't scoring as much. Nobody knows exactly why.](https://www.nbcnews.com/sports/nfl/nfl-scoring-2024-season-offense-passing-down-rcna171985)] I wanted to see if the data from this dataset reflects these trends, and how it varies across conferences and divisions.
+
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 1.** Average number of points scored in the NFL from 2003 to 2023. The highest average number of points scored was in 2020 with around 396 points per team, and the lowest number of points was 2005 with only around 330 points per team. There is year to year variation, but overall the data shows a positive trend with an increase in points scored each year."
+#how have points changed over time for the entire league
+nfl_data_clean |>
+  summarise(average_points = mean(points_scored),
+            .by = year) |>
+  ggplot(aes(x = year, y = average_points)) +
+  geom_point() +
+  geom_line() + 
+  labs(title = "Average Points Scored in the NFL over Time",
+       subtitle = "Points scored by NFL teams have generally increased",
+       x = "Year",
+       y = "Average Points Scored")
+```
+This plot shows the opposite of what was found when doing preliminary research - average points scored per season has **increased** rather than decreased over time. Although there are significant fluctuations such as 2004 to 2005 and 2017 to 2018, the general trend is positive. The highest number of points was scored in 2020 with almost 400 points being scored per team. However, 2020 and 2021 had different rules because of COVID-19, so it may have been easier to score more points with less fans, players in quarantine, etc. The lowest number of points were scored in 2005 and 2006 with only around 330 points being scored per team on average. However, there were different rules for football in the early 2000s, so it may have been harder to score a certain number of points. Although this data contradicts research online, the article cited in this memo is about offensive points, so many of the points in this graph could come from field goals or conversions. 
+
+##### How have average points scored per season changed over time by conference?
+I wanted to explore if the AFC scores more points on average than the NFC or vice versa. Similarly, I want to see if the conference trends are similar to the overall trends in the NFL, and if they are different, explore why.
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 2.** Average number of points scored in the AFC from 2003 to 2023. The highest average number of points scored was in 2020 with around 396 points per team, and the lowest number of points was 2006 with only around 330 points per team. There is severe fluctuation within the data year to year that makes it hard to discern a trend."
+#how have points changed over time for the AFC
+nfl_data_clean |>
+  filter(conference == "AFC") |>
+  summarise(average_points = mean(points_scored),
+            .by = year) |>
+  ggplot(aes(x = year, y = average_points)) +
+  geom_point() +
+  geom_line() + 
+  labs(title = "Average Points Scored in the AFC over Time",
+       subtitle = "Points scored by AFC teams has significant year to year fluctuations with no clear trend",
+       x = "Year",
+       y = "Average Points Scored")
+
+```
+
+The AFC has very similar average values for their high and low point average, but the trends year-to-year are different. It seems as though the peaks stay relatively consistent (aside from the COVID years of 2020 and 2021) at around 365 points per team. The valleys in the data are also somewhat consistent at around 330-340 points per team. Overall, there does not appear to be a lot of consistency within the conference, as each year varies significantly, and there is not a discernible increase in points.
+
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 3.** Average number of points scored in the NFC from 2003 to 2023. The highest average number of points scored was in 2020 with around 400 points per team, and the lowest number of points was 2004 with only around 322 points per team. There appears to be an increase in the average points scored per team in the NFC over time."
+#how have points changed over time for the NFC
+nfl_data_clean |>
+  filter(conference == "NFC") |>
+  summarise(average_points = mean(points_scored),
+            .by = year) |>
+  ggplot(aes(x = year, y = average_points)) +
+  geom_point() +
+  geom_line() + 
+  labs(title = "Average Points Scored in the NFC over Time",
+       subtitle = "Points scored by NFC teams have generally increased",
+       x = "Year",
+       y = "Average Points Scored")
+```
+The NFC have similar trends to the first graph we examined encompassing average points scored for the entire league. However, the NFC has slightly different values for their highest and lowest points scored - their highest in 2020 is higher than the NFL and AFC, and their lowest in 2004 is lower than the NFL and AFC. This conference also has much less fluctuations than the others, with a clear discernible trend showing an increase in average points scored across different seasons.
+
+Although the NFC and AFC have different trends and average values, they both have a peak in 2020 and a low between 2004-2006. This could be due to the factors discussed above, but this makes sense because if the NFL as a whole has high/low average point values, the individual leagues likely have similar peaks and valleys to contribute to these trends. The AFC does not appear to have an increase like the NFL, but the NFC does, which goes against the research done before analysis. However, points can come from a variety of plays that are not offensive, and we would have to look deeper into the offensive points scored to determine the validity of the NBC article in relation to this dataset.
+
+##### How have average points scored per season changed over time by division?
+Next, I wanted to see if there were specific divisions that scored more or less points within each conference and compare them to the trends from the NFL and the AFC/NFC. This allows me to see if certain divisions are more consistent than others and vice versa. 
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 4.** Average number of points scored in the AFC divisions from 2003 to 2023. There is significant variation from year to year within each division, and they appear to have different trends from each other. Overall, there does not seem to be a significant increase in points from 2003-2023 in any division in the AFC."
+nfl_data_clean |>
+  filter(conference == "AFC") |>
+  group_by(year, division) |>
+  summarise(average_points = mean(points_scored, na.rm = TRUE)) |>
+  ggplot(aes(x = year, y = average_points, color = division)) +
+  geom_line() + 
+  geom_point() +
+  scale_color_manual(
+    values = c(
+      "East" = "blue",    
+      "North" = "red",    
+      "South" = "green",  
+      "West" = "purple"     
+    )
+  ) +
+  labs(
+    title = "Average Points Scored in each Division (AFC Conference)",
+    subtitle = "Each division has significant fluctuation by season and appear to have different trends",
+    x = "Year",
+    y = "Average Points Scored",
+    color = "Division"
+  ) +
+  theme_minimal()
+
+```
+There is a lot of variation within divisions in the AFC. The most noteable trend is that there does not appear to be a significant increase in points over time. Specifically, the AFC West starts with around 360 points in 2003 and ends with an average of 350 points in 2023. Similarly, the AFC South started with around 355 points and ended with over 360 points on average. This shows that teams increase and decrease, but there is not one discernible trend within all the divisions in the AFC. The AFC West has the highest average point value over the two decades with almost 440 points in 2013. However, this division is very inconsistent and has a lot large fluctuations. The AFC North, South, and East have smaller fluctuations, but still vary year to year with different peaks and valleys. The trends for the divisions in the AFC do not match the trends for the NFL, but align well with the fluctuations and consistency of the AFC conference. 
+
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 5.** Average number of points scored in the NFC divisions from 2003 to 2023. There is significant variation from year to year within each division, but they appear to have similar trends. Overall, there seems to be an increase in points from 2003-2023 in every division in the NFC."
+nfl_data_clean |>
+  filter(conference == "NFC") |>
+  group_by(year, division) |>
+  summarise(average_points = mean(points_scored, na.rm = TRUE)) |>
+  ggplot(aes(x = year, y = average_points, color = division)) +
+  geom_line() + 
+  geom_point() +
+  scale_color_manual(
+    values = c(
+      "East" = "blue",    
+      "North" = "red",    
+      "South" = "green",  
+      "West" = "purple"     
+    )
+  ) +
+  labs(
+    title = "Average Points Scored in each Division (NFC Conference)",
+    subtitle = "Although there is fluctuation between divisions, the NFC appears to increase in average points",
+    x = "Year",
+    y = "Average Points Scored",
+    color = "Division"
+  ) +
+  theme_minimal()
+```
+The trends in the NFC division align with the trends from the NFL and the NFC conference. Regardless of division, all of them increase from 2003-2023 with fluctuations between years. The highest average point total comes from the NFC North with around 430 points in 2011. The lowest point total also comes from the NFC North  in 2005 with around 280 points. An interesting thing to note is that the NFC East, North, and West scored around the same average points in 2023 with around 380-390 points. This graph reflects the overall NFL trends with an increase in points over time. 
+
+Overall, the average point totals across divisions reflect the conference distributions, rather than the trends for the entire NFL. This makes sense, as the divisions make up the trends for the conferences, but it is interesting that each division itself follows the same trend. For the AFC, there is no increase or decrease - some divisions increase in point totals and some divisions decrease in point totals. In contrast, the NFC divisions all increase in points over time, which reflects the trend for the NFC conference. According to these graphs, it seems as though the NFC carries the trend for the NFL - because the AFC stays consistent and the NFC increases, the overall average point trend is positive. This leads me to believe that while offensive points may have decreased in the NFL, the average point total overall has increased over the past 20 years. 
+
+### Performance of Specific Teams
+##### Which team has the most wins in the dataset?
+It would be interesting to see which teams have performed the best over the past 20 years. This could inform more data analysis by analyzing the defensive and offensive point totals of the highest scoring team to see if there is any correlation between these variables. 
+```{r}
+#| echo: false
+#| fig-cap: "**Table 1.** Total wins for each team in the NFL over 20 years. The teams with the most wins are the New England Patriots, the Pittsburgh Steelers, and the Green Bay Packers."
+nfl_data_clean |>
+  group_by(team) |>
+  summarize(total_wins = sum(wins)) |>
+  arrange(desc(total_wins)) |>
+  kable(caption = "Total Wins for Each Team in the NFL from 2003-2023",
+        col.names = c("Team", "Total Wins"))
+```
+The top three winning teams over the past twenty years are the New England Patriots, the Pittsburgh Steelers, and the Green Bay Packers. These three teams have 241, 213, and 207 wins respectively, which is the highest in the data set. It would be interesting to explore different variables for this team to determine what variable best predicts the odds of winning a game. 
+
+##### Which team has the best win-to-loss ratio over the years?
+I also wanted to analyze the win to loss ratio to see if the same teams have the best record in the NFL. I assume they will be similar because the teams that have the most wins should have the least amount of losses, but I want to make sure this is true, and if there are discrepancies, find out why
+```{r}
+#| echo: false
+#| fig-cap: "**Table 2.** Win/loss ratio for each team in the NFL over 20 years. The teams with the best win/loss ratio are the New England Patriots, the Pittsburgh Steelers, and the Green Bay Packers."
+nfl_data_clean |>
+  group_by(team) |>
+  summarise(
+    total_wins = sum(wins, na.rm = TRUE),
+    total_losses = sum(losses, na.rm = TRUE),
+    win_loss_ratio = total_wins / total_losses
+  ) |>
+  arrange(desc(win_loss_ratio)) |>
+  kable(caption = "Win/Loss Ratio for Each Team in the NFL from 2003-2023",
+        col.names = c("Team", "Total Wins", "Total Losses", "Win/Loss Ratio"))
+```
+As predicted, the same teams that have the most wins have the same win/loss ratio - New England Patriots, the Pittsburgh Steelers, and the Green Bay Packers. This makes sense because every team plays the same amount of games, so if they win the most then they will lose the least. I performed this test to ensure the data was accurate and there are no discrepancies regarding total wins and losses (and also out of curiosity).
+
+### Season-Level Trends
+##### What were the highest-scoring seasons for individual teams?
+Next, I wanted to explore the best season for each team to see if there were any seasons that showed several teams performing their best and see if there was any variable from this year that would cause this. I also wanted to see how many wins each team had during their best season and see how this lines up with the most wins total for each team in the NFL.
+```{r}
+#| echo: false
+#| fig-cap: "**Table 3.** The best season for each team in the NFL in the last 20 years. The team with the most wins in their best season is the New England Patriots with 16 wins in 2007."
+nfl_data_clean |>
+  group_by(team, year) |>
+  summarize(season_wins = sum(wins, na.rm = TRUE), .groups = "drop") |>
+  group_by(team) |>
+  slice_max(season_wins, n = 1, with_ties = FALSE) |>
+  ungroup() |>
+  arrange(desc(season_wins)) |>
+  kable(caption = "Highest Scoring Season for Each Team in the NFL from 2003-2023",
+        col.names = c("Team", "Year", "Season Wins"))
+```
+It seems as though 2005 was the best season for five teams in the dataset - Washington Commanders, Jacksonville Jaguars, Seattle Seahawks, Denver Broncos, and Indianapolis Colts. This is a decent amount of teams and could warrant further analysis into different variables in this year and how they relate to wins. Many teams had their best seasons in the 2000s and 2010s, with only five teams having their best season after 2020. Interestingly, the teams that have the most wins overall do not have the highest number of wins in their best season. For example, the Carolina Panthers have a lower win/loss ratio, but their best season ties them for second at 15 wins. The teams with high win/loss ratios are higher on this list, but there is more variety in the teams seen with more wins when this question is explored. Overall, we see similar trends between win/loss ratio and 
+
+
+##### Are certain years dominated by a few teams, or is performance evenly distributed?
+In the NFL, it is common to see seasons dominated by one or two really good teams. I wanted to see how the dominance of a few teams varies by year, and if that has any correlation to the graphs I have shown previously (i.e. do the years with more points scored have more or less dominance?). I also wanted to see which teams are the most dominant each year and how that relates to the best season each team has had in the past twenty years.
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 6.** The standard deviation of average wins in the NFL by each season from 2003-2023. 2020 showed the year with the most dominance of a few teams, as indicated by the highest standard deviation value of 3.5. 2023 showed the most evenly distributed performance from each team, with the lowest standard deviation value of around 3.0."
+# summarize total wins per year per team
+nfl_data_clean |>
+  group_by(year, team) |>
+  summarise(total_wins = sum(wins), .groups = "drop") |>
+  group_by(year) |>
+  summarise(
+    max_wins = max(total_wins),  
+    avg_wins = mean(total_wins),  
+    sd_wins = sd(total_wins)
+  ) |>
+
+
+# visualize standard deviation of wins by year
+ggplot(aes(x = year, y = sd_wins)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Standard Deviation of Wins in the NFL by Season",
+    subtitle = "Higher standard deviation indicates greater dominance by a few teams in the NFL",
+    x = "Year",
+    y = "Standard Deviation of Wins"
+  ) +
+  theme_minimal()
+
+```
+
+There seems to be no trend on how dominance has played a role in the NFL over time. Although it may seem currently like a few teams are really dominating the league, the standard deviation value was at an all time low in 2023. Furthermore, there is large variation between seasons, meaning some seasons are dominated by a few teams, and some are spread evenly amongst the teams in the league. An interesting correlation is in 2020, it appears as though dominance played a large role in the season, and this is coincidentally when the most points were scored in the NFL. It would be interesting to see which team was the most dominant in 2020 and measure how many points they scored to see if that was a contributing factor to the point high. 
+```{r}
+#| echo: false
+# most dominant team in each year
+nfl_data_clean |>
+  group_by(year, team) |>
+  summarise(total_wins = sum(wins), .groups = "drop") |>
+  group_by(year) |>
+  slice_max(total_wins, n = 1) |>
+  arrange(desc(year)) |>
+  kable(caption = "Most Dominant Team Each Season 2003-2023",
+        col.names = c("Year", "Team", "Total Wins"))
+        
+```
+The most dominant teams over the past twenty years are also the teams with the highest win/loss ratio and most number of wins. This is not surprising because if the team has more wins, they likely are more dominant in the league and have a more dominant season. However, the Baltimore Ravens recently have been dominating seasons, but do not have the highest win total. This is likely due to some rough seasons throughout the twenty years that make them less consistent and have less total wins. For example, the Detroit Lions had a great 2023 season, but in 2008, they had no wins. Therefore, the teams that have the most wins may not be the most dominant, but the most consistent. It would be interesting to see the percentage of the most dominant teams in each season that win the Superbowl, and if dominance plays a role in the overall ending of the season. While there are a few teams repeated often for this list, there does not appear to be an era where one team has complete dominance over the league, which supports the graph of standard deviation shown above.
+
+
+## Research Questions
+
+Upon doing some preliminary exploratory data analysis, I wanted to explore three major research questions that span across different trends in the NFL:
+
+1. How does points allowed/scored correlate with wins?
+2. Are there any teams that consistently underperform or overperform?
+3. Which divisions have the highest average wins per season?
+
+The first research question allows for the exploration of the variables `points_allowed`, `points_scored`, and `wins`. This question can also relate to how the offense and defense play a role in the wins of a team - is offense or defense more important for a winning team?
+
+The second question will look at outliers in the data. This will likely involve the exploration of many different variables including `wins`, `losses`, `points_scored`, `pass_td`, and more. I will likely begin by constructing a few boxplots for different variables and seeing if different teams or seasons stand out as odd consistently. These results will give me better insight into why certain teams may overperform or underperform, and what variables are most important for having a winning season. 
+
+The third question is relatively simple, but is something I am very curious about. The variables explored will be `year`, `conference`, and `wins`. However, I plan on exploring this variable further and determining if it is harder to make the playoffs in the AFC or NFC, and which league has more superbowl winners. This will likely require the creation of new variables pertaining to the superbowl and the playoffs that will be an addition to the data tidying/modification step if required.  
+
+## Current Progress
+I feel as though I have made significant progress in the data tidying and EDA steps of my project. I have made a new dataset called `nfl_data_clean` that contains all the new variables I need, as well as renamed variables and less N/A values, making it much more readable and easy to work with. Furthermore, I have inspected different variables within the set in a preliminary EDA to fine-tune the research questions I want to explore for my final project. There is still much more EDA I want to perform, especially with bivariate analysis, but I plan on continuing this as I work towards my final project submission. I may have to go back and tidy the data further if I need to add or remove more variables, but this will be determined by the needs of my project as I seek to answer these research questions. I think I have made good progress so far, but there is always more I am curious about!
+
+## Next Steps
+First, I want to create variables pertaining to the playoffs and the superbowl across the years. I am unsure where I will begin with this step, but I plan on doing more research within the Data Science textbook and perhaps generative AI to determine the best way to format these variables for analysis. I think it would be beneficial to compare playoff rates between conferences and divisions to see what the easiest and hardest conferences are, as well as how dominant teams are in years where they win the superbowl. 
+
+Second, I want to explore more bivariate analysis, specifically pertaining to data correlating with wins. For example, do more passing touchdowns correlate with more wins? Do more rushing yards correlate with more wins? In other words, what variable has the strongest indicator for higher wins. I think this would be useful to know because it can be used to predict whether a team will have a winning season, and if it is something tangible, coaches can focus in on a certain aspect of the sport to improve the win/loss ratio.
+
+Finally, I want to work on answering my big three research questions to the best of my ability. This will involve more EDA and data tidying as stated above, but I want to make more progress towards the completion of my final project. This involves working on the project a little bit each day, so I do not become overwhelmed and I can dedicate the proper time to variable exploration. 
+
+## Miscellaneous
+
+I have a lot of research questions/curiosities pulling me in a lot of different directions, and would love some feedback or guidance on my next steps! I have a pretty good idea of what I want to explore, but if you think there is anything I could do better or explore futher, I am always open to critique! :)
