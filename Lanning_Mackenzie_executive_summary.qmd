@@ -1,0 +1,154 @@
+---
+title: "Two Decades of NFL Insights: Analyzing the League from 2003-2023"
+subtitle: "Analyzing Team Success, Offensive and Defensive Metrics, and Key Trends in the League"
+author: "Mackenzie Lanning"
+date: 12-02-2023
+
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Lanning_Mackenzie_Executive_Summary](https://github.com/stat301-1-2024-fall/final-project-1-MLanning314)
+
+:::
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(knitr)
+library(scales) 
+library(naniar)
+```
+
+```{r}
+#| echo: false
+nfl_data <- read.csv("data/raw/team_stats_2003_2023.csv")
+nfl_data_clean <- read.csv("data/nfl_data_clean.csv")
+```
+
+
+## Overview
+This project examines NFL team performance data from 2003 to 2023 to identify key factors influencing team success. By analyzing detailed team statistics, including offensive and defensive metrics, I was able to determine the relationship between these variables and regular season wins. The orginal NFL dataset comes from [Kaggle](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023), but the analysis conducted used a cleaner version of this dataset. The purpose of this project is to provide a comprehensive view of how different metrics interact to influence team performance, hopefully offering valuable tools for future predictive models and evaluations of NFL success.
+
+
+## Key Components of the Analysis
+### Offensive and Defensive Contributions
+##### Offensive performance plays a more important role in winning games than defensive performance
+The beginning of my project focuses on the correlation of different variables with winning games. During this exploration, the most important finding I discovered was that points scored was a more important metric than points allowed. As seen in @fig-1 Offensive performance often outweighs defensive performance in determining a team’s success. Teams with higher scoring abilities have a better chance of winning games. Different plays such as passing touchdowns, rushing yards, and turnover rate serves as key indicators of offensive ability. While a solid defense is necessary to limit opponents' scoring, offensive performance has a higher correlation to team wins, highlighting how prioritizing offensive strategies can yield greater results, particularly in a sport increasingly focused on high-scoring play styles.
+```{r}
+#| label: fig-1
+#| echo: false
+#| fig-cap: "Comparison of offense vs. defense correlation with wins. This bar plot illustrates the average correlation between team wins using offensive (points scored) and defensive (points allowed) performance. The blue bar represents the correlation between points scored and wins, while the red bar shows the correlation between points allowed and wins. The graph shows that offensive performance has a higher correlation with total wins compared to defensive performance."
+figure_4 <- nfl_data_clean |> 
+  summarise(
+    offensive_correlation = mean(c(
+      cor(wins, points_scored, use = "complete.obs")
+    ), na.rm = TRUE),
+    
+    defensive_correlation = mean(c(
+      cor(wins, points_allowed, use = "complete.obs")
+    ), na.rm = TRUE)
+  ) |> 
+  pivot_longer(cols = everything(), names_to = "Category", values_to = "Correlation") |> 
+  ggplot(aes(x = Category, y = Correlation, fill = Category)) + 
+  geom_bar(stat = "identity", width = 0.8) + 
+  scale_fill_manual(values = c("offensive_correlation" = "blue", "defensive_correlation" = "red")) + 
+  labs(
+    title = "Comparison of Offense vs Defense Correlation with Wins",
+    subtitle = "Offense has a higher correlation with total wins per season",
+    x = "Category",
+    y = "Correlation"
+  ) + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+print(figure_4)
+```
+### Outlier Identification and Analysis
+##### Most NFL teams perform close to their predicted win totals, but a few consistently overperform or underperform, indicating discrepancies within the league.
+Another main section in my product explored the analysis of outliers, specifically pertaining to team performance over the 20-year period in the dataset. I used predictive models based on points scored and allowed to detect teams that overperformed or underperformed relative to expectations. @fig-2 highlights teams that consistently overperform or underperform relative to their predicted win totals. By examining discrepancies between actual and predicted wins, different trends emerge that indicate odd results within divisions or rankings. For example, teams like the Colts and Steelers are identified as overperformers, often exceeding their predicted outcomes, while teams such as the Los Angeles Chargers consistently underperform. This outlier analysis not only provides insights into team dynamics but also raises questions about underlying factors, such as coaching strategies, player consistency, or situational performances, that contribute to these data points. Additionally, it can indicate trends within different divisions that may be more or less competitive, resulting in a different number of actual wins and discrepancies within the data. Understanding these patterns is critical for evaluating team efficiency and strategic adjustments.
+```{r}
+#| label: fig-2
+#| echo: false
+#| fig-cap: "Teams that consistently overperform or underperform. This heatmap visualizes the win difference for each NFL team based on the discrepancy between actual and predicted wins. Green indicates overperformance, as seen with the Colts and Steelers, while red indicates underperformance, such as by the Los Angeles Chargers."
+figure_7 <- ggplot(nfl_data_clean, aes(x = team, y = 1, fill = win_difference)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "red", high = "green", midpoint = 0) +
+  labs(title = "Teams Overperforming or Underperforming",
+       subtitle = "The Los Angeles Chargers seem to underperform the most on average\nwhile the Colts and Steelers overperform the most",
+       x = "Team",
+       y = " ",
+       fill = "Win Difference") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 60, hjust = 1),  
+    axis.text.y = element_blank()) +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+
+print(figure_7)
+```
+
+### Divisional and Conference Performance
+##### Certain divisions are more competitive than others, as seen by the overwhelming number of Superbowl winners from the AFC East
+The final section of my project delved into the differences between the divisions and conferences in the NFL, specifically how the competitiveness of different conferences impacts Superbowl and playoff odds. The most important finding from this section was the number of Superbowl winners from each division, as this is an indicator of dominance in the most important game within the league. As illustrated in @fig-3, the AFC East has been particularly dominant, having the highest number of Superbowl winners over the past 20 years. This division’s success emphasizes its competitiveness and ability to produce high-performing teams. In contrast, other divisions have struggled to match this level of representation, reflecting variations in strategies and postseason success across the league.
+
+```{r}
+#| label: fig-3
+#| echo: false
+#| fig-cap: "Superbowl wins by conference and division. This barplot shows the distribution of Superbowl victories over the past 20 years, the AFC East leads with six wins."
+figure_11 <- nfl_data_clean |> 
+  filter(superbowl == "Yes") |> 
+  group_by(conference, division) |> 
+  summarize(count = n()) |> 
+  ggplot(aes(x = division, y = count, fill = division)) + 
+  geom_bar(stat = "identity") + 
+  labs(title = "Super Bowl Appearances by Division",
+       subtitle = "The AFC East has the highest number of superbowl appearances\nwith 6 teams in the past 20 years",
+       x = "Division", 
+       y = "Number of Teams in Super Bowl",
+       fill = "Division") + 
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) + 
+  facet_wrap(~conference)
+
+print(figure_11)
+```
+
+## Conclusion
+This analysis explores the various metrics that contribute to NFL team performance over the past 20 years, focusing on offensive and defensive performance, outlier identification, and divisional and conference variation. The data reveals that offensive performance plays a more prominent role in determining whether or not a team will win a game in the regular season. Outlier teams, such as the Los Angeles Chargers, show a significant difference between actual and predicted win totals, providing areas for possible further investigation. Additionally, the analysis reveals the competitiveness of divisions, with the AFC East leading in Superbowl victories. Overall, this study provides valuable insights into the dynamics of NFL team performance, offering important key takeaways for future strategy within the league.
+
+## References
+Kaggle. (2024). NFL Team Data 2003-2023 [Dataset]. [https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023)
+
+“NFL History - Super Bowl Winners.” ESPN, ESPN Internet Ventures, [www.espn.com/nfl/superbowl/history/winners](www.espn.com/nfl/superbowl/history/winners)
+
+“Playoff Results, 1932-Present: Pro Football Hall of Fame.” Pfhof, [www.profootballhof.com/news/2005/01/news-playoff-results-1932-present/](www.profootballhof.com/news/2005/01/news-playoff-results-1932-present/)
