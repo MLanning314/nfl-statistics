@@ -1,0 +1,98 @@
+---
+title: "Progress Memo 1"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Mackenzie Lanning"
+pagetitle: "PM1 Mackenzie Lanning"
+date: 2024-11-02
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Lanning_Mackenzie_Progress_Memo_1](https://github.com/stat301-1-2024-fall/final-project-1-MLanning314)
+
+:::
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(knitr)
+```
+
+
+```{r}
+#| echo: false
+nfl_data <- read.csv("data/team_stats_2003_2023.csv")
+
+
+```
+
+## Data source
+
+This data source is from Kaggle, which is a platform containing many datasets uploaded by data scientists or enthusiasts. My source specifically shows NFL data from 2003-2023 for all 32 teams in the league.^[[https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023 - accessed November 2 2024](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023)] The dataset contains averages for 35 variables commonly used in sports statistics such as turnovers, fumbles, touchdowns, and passing yards, among many others. These averages are taken over 21 seasons to provide a comprehensive view on how each team/conference is playing and their improvement rate over time. The dataset contains 3 different types of variables: strings, integers, and decimals. I do not anticipate the need to join this dataset together with another one because this dataset contains all the variables I want to work with for this project. 
+
+## Why this data
+
+I chose this dataset because I am very passionate about football and have watched the NFL all my life, but have never explored the statistical data behind the sport. I think it will be fun and challenging to find different patterns within the data and use that to continue to grow in my knowledge of the sport. Furthermore, I believe it will be interesting to see the statistics of my favorite team compared to others in the league. I want to see if certain variables such as interceptions and fumbles correlate to a lower number of passing/rushing yards in a season - i.e does making small mistakes throughout the season make a huge difference overall. Similarly, I am interested to see how many total points come from touchdowns for each team, and how the number of touchdowns vary per year per team.
+
+## Data quality & complexity check
+
+I have read in the data and produced a table of the touchdown total, point total, and yard total values from the Oakland Raiders from 2010-2019. Similarly I plotted a preliminary graph showing how many touchdowns they score per year from 2003-2023
+
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 1.** Total points, total yards, and total passing touchdowns for the Oakland Raiders (2010–2019). The Raiders achieved the most points in 2016, the highest number of yards in 2011, and the most passing touchdowns in 2015. There does not appear to be a strong correlation between the three variables as they all vary between years"
+nfl_data |>
+  filter(team == "Oakland Raiders", year >= 2010, year <= 2019) |>
+  select(team, year, points, total_yards, pass_td) |>
+  kable(
+    col.names = c("Team", "Year", "Total Points", "Total Yards", " Total Passing Touchdowns"),
+    caption = "Oakland Raiders Team Stats (2010-2019)")
+```
+
+```{r}
+#| echo: false
+#| fig-cap: "**Fig 2.** Number of Passing Touchdowns by the Oakland Raiders (2003–2023). The Raiders achieved their highest number of passing touchdowns in 2015 and their lowest in 2006, with substantial year-to-year variability observed throughout the period. "
+nfl_data |>
+  filter(team == "Oakland Raiders") |>
+  ggplot(aes(x = year, y = pass_td)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Number of Passing Touchdowns per Year for the Oakland Raiders",
+       subtitle = "Passing touchdowns for the Raiders show noticeable year-to-year variability",
+       x = "Year",
+       y = "Total Passing Touchdowns")
+```
+
+There are 35 variables in the data set - 25 integers, 9 decimals, and 1 string. The dataset contains 672 observations spanning across average values from the 2003-2023 NFL seasons. It seems as though the types of variables in this dataset are relatively easy to work with because they are mostly numerical, but it will be challenging to find different correlations between many of the variables and it will involve a very extensive EDA process. The data seems to be tidy already, but I would like to clean it up further by removing/filling NA values and renaming some complex variables. There is not an overwhelming amount of missingness in the data, but there are significant NA values for two variables: ties and mov (margin of victory). At first I believed the NA values for the tie variable was because the team did not tie all season, but it appears that the dataset classifies that result as 0, so that doesn't explain the missingness. Further, I do not know why the margin of victory variable has so many missing values - I would have to do a larger EDA to explore this.  
+
+
+
+## Potential data issues
+
+I do not see too many potential data issues, but one thing that will be a problem when data wrangling is the separation of divisions in the NFL. Variation among teams in the same conference is of extreme statistical significance, so I will need to break the teams into both divisions and conferences for the best data visualization. Further, the missing data could be an issue because margin of victory would be a nice variable to analyze in terms of overall game winning percentage. There are also so many variables to manage, so it may be hard to find the best correlations and difficult to select variables that best reflect the answers to questions I have.
+
+## Misc
+
+I'm very excited to work with data on a topic I am interested in, but would love feedback in creating questions about the data or figuring out a way to navigate EDA with so many variables - thank you!!
