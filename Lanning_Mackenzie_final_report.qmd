@@ -1,0 +1,734 @@
+---
+title: "Two Decades of NFL Insights: Analyzing the League from 2003-2023"
+subtitle: "Analyzing Team Success, Offensive and Defensive Metrics, and Key Trends in the League"
+author: "Mackenzie Lanning"
+date: today
+
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Lanning_Mackenzie_Final_Project](https://github.com/stat301-1-2024-fall/final-project-1-MLanning314)
+
+:::
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(knitr)
+library(scales) 
+library(naniar)
+```
+
+```{r}
+#| echo: false
+nfl_data <- read.csv("data/raw/team_stats_2003_2023.csv")
+nfl_data_clean <- read.csv("data/nfl_data_clean.csv")
+nfl_data_clean_codebook <- read.csv("data/nfl_data_clean_codebook.csv")
+```
+## Introduction
+Since its inception in 1920, the National Football League (NFL) has evolved into one of the most popular sports leagues in the world. The entire league consists of 32 teams split into 8 divisions and 2 conferences. Throughout the NFL season, the league's 32 teams display a combination of talent, strategy, and resilience that captivates fans of various teams each season. As someone who has watched football with my family for years, I have always been interested in many different metrics related to the sport. With rules and regulations changing in the past two decades, I was interested and exploring how different variables impact the outcome of team and divisional performances.
+
+Motivated by this overarching question, I used data spanning 20 years from 2003-2023 to determine different variables that influence winning and explore divisional differences across the NFL. This analysis examines key performance indicators that measure odds of victory in a game, as well as which teams overperform or underperform consistently each year. By exploring correlations between wins and metrics such as points scored, points allowed, and playoff appearances, the report also highlights how offensive and defensive strategies contribute to overall success. Additionally, each conference and division was analyzed to determine how competitive and successful they are on average, specifically at the playoffs and Superbowl stage.
+
+In order to complete this analysis, I used [NFL team data from 2003-2023](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023) found on Kaggle, a website with many datasets uploaded by data scientists and data enthusiasts. I cleaned this dataset and added new variables, specifically for playoff and Superbowl data, to make the data analysis easier and more comprehensive in relation to my questions. Through this analysis, I hope to discover new trends in the NFL and gain insight to answer the questions motivating this project.
+
+
+## Data Overview and Quality
+### Description of the Raw Dataset
+The [NFL dataset](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023) from Kaggle is already very tidy and well-organized. This dataset has 35 variables and 672 observations. There are 34 numeric variables (25 integers and 9 decimals), and one string.
+
+### Description of the Cleaning Process
+In order to ensure completeness, accuracy, and consistency within the dataset, an extensive cleaning process was conducted. First, I renamed variable names for clarity, as some names in the dataset were very confusing. For example, `g` was changed to `games_played`, `mov` was changed to `margin of victory`, `points` was changed to  `points_scored`, `points_opp` was changed to `points_allowed`, `fumbles_lost` was changed to `fumbles`, `pass_cmp` was changed to `pass_completion`, `exp_pts_tot` was changed to `expected_points_offense`, `pen_fd` was changed to `penalties_fd`, and `pass_fd` was changed to `pass_first_down`. Next, because there are different eras of the NFL with different teams moving around the country, I ensured that different team names for the same team were unified. Specifically, the `Oakland Raiders` became the `Las Vegas Raiders`, the `St. Louis Rams` became the `Los Angeles Rams`, the `San Diego Chargers` became the `Los Angeles Chargers`, and the `Washington Redskins`/`Washington Football Team` became the `Washington Commanders`.
+
+Then, I modified the dataset by adding the `conference` and `division` variables to see variance within different subsections of the NFL. For the two conferences, I began by separating each team into either the AFC or the NFC. For the eight divisions, I categorized each team as North, East, South, or West. This made it easier to filter out teams and compare different metrics across the NFL.
+
+
+Because my exploratory data analysis is focused on how different variables impact teams chances of making the playoffs or winning the Superbowl, I made two new datasets, `playoff_teams` and `superbowl_winner`. The playoff dataset contains a list with 21 observations for the 21 years being measured in the original dataset. The list has each year followed by either 12 or 16 characters (teams) depending on how many NFL teams were allowed to make the playoff that year. The Superbowl dataset also contains a list of 21 observations with the year and one character, the team that won the Superbowl for each corresponding year. If a team in the NFL dataset matches any of the teams in the playoff dataset, the observation in the clean dataset will appear as "Yes", if the team is not in the playoff dataset, it will appear as "No". The same logic is applied to the Superbowl dataset - if the team won the Superbowl, the value will be "Yes" for that team and year, otherwise the value will be "No". I merged these two datasets with the clean dataset for analysis using left_join to ensure all the variables needed to answer my initial questions are in one clean NFL dataset.
+
+Finally, I removed the `ties` variable from the dataset because this variable is not relevant to football anymore, and it does not serve any benefit to my analysis. Additionally, there was a lot of missingness with this variable, so analysis would not be possible regardless.
+
+### Description of the Clean Dataset
+The clean NFL dataset contains 40 variables with 672 observations. There are 11 numeric variables, 24 integer variables, and 5 character variables.
+
+**Numeric Variables**: Season Year (year), Win/Loss Percentage (win_loss_perc), Average Margin of Victory (margin_of_victory), Yards per Play Offense (yds_per_play_offense), Net Yards Gained Per Pass Attempt (pass_net_yds_per_att), Rushing Yards Per Attempt (rush_yds_per_att), Percentage of Drives Ending in Score (score_pct), Percentage of Drives Ending in Turnover (turnover_pct), Expected Points Contributed by Offense (expected_points_offense), Expected Wins (expected_wins), and Win Difference (win_difference)
+
+**Integer Variables**: Games Won (wins), Games Lost (losses), Points Scored (points_scored), Points Allowed (points_allowed), Points Differential (points_diff), Games Played (games_played), Offensive Yards Gained (total_yards), Offensive Plays Ran (plays_offense), Team Turnovers Lost (turnovers), Team Fumbles Lost (fumbles), First Downs Gained (first_down), Passes Completed (pass_completion), Pass Attempts (pass_att), Passing Yards (pass_yds), Passing Touchdowns (pass_td), Interceptions Thrown (pass_int), Passing First Downs Gained (pass_fd), Rushing Attempts (rush_att), Rushing Yards (rush_yds), Rushing Touchdowns (rush_td), Rushing First Downs (rush_fd), Penalties Committed (penalties), Penalty Yards Committed (penalties_yds), First Downs by Penalty (penalties_fd), 
+
+**Character Variables**: Team Name (team), NFL Conference (conference), NFL division (division), Team Playoff Appearance (playoff), Team Superbowl Win (superbowl)
+
+This dataset aims to encompass all variables needed to conduct a thorough analysis of the National Football League. A more detailed description of these variables can be found with the [dataset on Kaggle](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023), where the author explains the variables and creation of the dataset more in depth.
+
+### Quality Issues and Concerns
+In the raw dataset, there is significant missingness for the `ties` variable, as seen in @fig-13 in the Appendix: Technical Information. This is one of the main reasons why the variable was removed from the clean dataset. Additionally, the `margin_of_victory` variable has significant missingness - this is difficult to address, as it is hard to determine how the margin was calculated. To address this issue, I made a new variable `win_difference` for different teams throughout various seasons. This is not the exact same, but accomplishes the same goal in my analysis, but the margin of victory variable still has missingness in the clean dataset as seen in @fig-14. Other variables in the dataset, however, do not have significant missingness, so I do not see this being an issue for the data analysis conducted.
+
+Another concern is the need to create a linear model for the NFL data to answer questions about outliers. This was done with the help of generative AI to determine expected wins based off points scored during the season. Then, the number of expected wins was used to calculate win difference between actual and expected wins to see if teams over or underperform on average. This is not a perfect model, however, and the data produced should be analyzed for trends more than actual numerical data due to the hypotheical nature of the model. Although not a serious concern, it is important to note and question the linear model used to answer these questions.
+
+
+## Explorations
+### Analysis of the "Wins" Variable
+As a lifelong football fan, one of the first questions I wanted to answer when analyzing this dataset was how different variables correlate with winning games. As winning is the most important indicator of how well a team is doing during the NFL season, it was important for me to begin my exploratory data analysis by asking various questions surrounding the `win` variable. The first question I wanted to answer was: **how does points allowed vs. points scored correlate with wins?** This question was prompted by the current 2024-2025 Cincinnati Bengals team because each game they score more points than NFL average, but still manage to lose the game. This made me wonder if teams that score higher points win more and vice versa. I began by creating a simple correlation graph to see if there is positive or negative correlation between points scored, or points allowed, and wins.
+
+```{r}
+#| label: fig-1
+#| echo: false
+#| fig-cap: "Relationship between points scored and wins in the NFL. The scatterplot shows a positive correlation between the number of points scored and wins in the NFL. Each point represents an observation for a specific team and season. The blue line is a linear regression fit that emphasizes the positive trend."
+
+figure_1 <- ggplot(nfl_data_clean, aes(x = wins)) +
+  geom_jitter(aes(y = points_scored), 
+              width = 0.4, alpha = 0.7, size = 2, color = "black") +
+  geom_smooth(aes(y = points_scored), method = "lm", color = "blue", se = FALSE) +
+  labs(
+    title = "Correlation of Average Points Scored with Wins per Season",
+    subtitle = "There is a positive correlation between points scored and total wins",
+    x = "Wins",
+    y = "Points Scored"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+ggsave("figures/figure_1.jpeg", plot = figure_1)
+print(figure_1)
+```
+```{r}
+#| label: fig-2
+#| echo: false
+#| fig-cap: "Relationship between points allowed and wins in the NFL. The scatterplot illustrates the negative correlation between the number of points allowed and wins in the NFL. Each point represents an observation for a specific team and season. The red line is a linear regression fit that emphasizes the negative trend."
+figure_2 <- ggplot(nfl_data_clean, aes(x = wins)) +
+  geom_jitter(aes(y = points_allowed), 
+              width = 0.4, alpha = 0.7, size = 2, color = "black") +
+  geom_smooth(aes(y = points_allowed), method = "lm", color = "red", se = FALSE) +
+  labs(
+    title = "Correlation of Average Points Allowed with Wins per Season",
+    subtitle = "There is a negative correlation between points allowed and total wins",
+    x = "Wins",
+    y = "Points Allowed"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+ggsave("figures/figure_2.jpeg", plot = figure_2)
+print(figure_2)
+```
+The two scatterplots above illustrate the relationship between points scored and points allowed in relation to winning games. In @fig-1, there is a clear positive correlation between points scored and total wins in a season. This means that teams who score more points on average tend to achieve more victories throughout the NFL season. The blue linear regression line highlights the positive trend within the data, demonstrating that as the number of points scored increases, the number of games won also increases. This aligns with the logical understanding of offensive performance being important to team success on the field. 
+
+However, it is interesting to note that the correlation value is 0.75, which is high, but not as high as I was expecting given that scoring points should be the best indicator of a team winning a game. This could likely be due to a variety of factors, such as low-scoring games or situations where teams may win through defensive performance, turnovers, or special teams contributions. Additionally, different teams may have harder schedules than others, so scoring more points may still result in a loss, which would impact the strength of the correlation.
+
+In contrast, the scatterplot in @fig-2 shows a negative correlation between points allowed and winning games. The red linear regression line shows that as the number of points allowed increases, the number of games won decreases. Again, this is a logical trend, because if the opponent scores more points, they are more likely to win. Furthermore, more points allowed could relate to a less effective offense, which would be indicative of a less successful team. The correlation value for these two variables is only 0.65, which still indicates a trend, but is not the strongest value. This might suggest that while defense is critical, other factors such as offensive performance or game situations could play a substantial role in the final outcome of games. Additionally, teams may win despite allowing high points if their offense compensates for defensive weaknesses.
+
+Together, these two plots offer insight into how points scored and points allowed impact a team's chances of winning a game. The first plot shows a clear positive correlation between points scored and total wins, indicating that teams that score more points on average tend to win more games. The second plot illustrates a negative correlation between points allowed and wins, highlighting that teams that allow more points typically have fewer victories. While both plots demonstrate a relationship between the respective variables and team success, the correlation between points scored and wins is stronger than the correlation between points allowed and wins. This can be seen better in @fig-3, which plots the two relationships on the same graph, highlighting how scoring points has a more direct impact on team success.
+
+```{r}
+#| label: fig-3
+#| echo: false
+#| fig-cap: "Correlation of points scored and points allowed with wins. This scatter plot illustrates the relationship between points scored, points allowed, and total wins for NFL teams. The blue regression line represents the positive correlation between points scored and wins, while the red regression line shows the negative relationship between points allowed and wins."
+figure_3 <- ggplot(nfl_data_clean, aes(x = wins)) + 
+  geom_jitter(aes(y = points_scored, color = "Points Scored"), alpha = 0.7) + 
+  geom_jitter(aes(y = points_allowed, color = "Points Allowed"), alpha = 0.7) + 
+  scale_color_manual(values = c("Points Scored" = "blue", "Points Allowed" = "red")) + 
+  geom_smooth(aes(y = points_scored, color = "Points Scored"), method = "lm", se = FALSE, linetype = "solid") + 
+  geom_smooth(aes(y = points_allowed, color = "Points Allowed"), method = "lm", se = FALSE, linetype = "solid") + 
+  labs(
+    title = "Correlation of Points Allowed and Points Scored with Wins", 
+    subtitle = "Points scored has a higher positive relationship with total wins,\nwhile points allowed has a negative relationship with total wins",
+    x = "Wins", 
+    y = "Points Scored or Allowed",
+    color = "Metric"
+  ) + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(hjust = 0.5),        
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+ggsave("figures/figure_3.jpeg", plot = figure_3)
+print(figure_3)
+```
+These results lead me to my next question: **is offense or defense more important to a team winning games?** The correlation between points scored and wins suggests that offensive performance, particularly the ability to score points, plays a large role in determining whether or not a team will win a game as teams that score more points tend to have a higher number of victories. However, the negative correlation between points allowed and wins highlights the role of defense, indicating that teams that allow fewer points are more likely to win games. As seen in @fig-4 while the defensive aspect is undeniably important, the stronger correlation between points scored and wins suggests that, offense may have a more direct impact on team success. This raises the question of whether a strong offense can compensate for a weaker defense, or if a solid defense is essential for consistent wins, especially against high-scoring opponents in a more competitive schedule.
+
+```{r}
+#| label: fig-4
+#| echo: false
+#| fig-cap: "Comparison of offense vs. defense correlation with wins. This bar plot illustrates the average correlation between team wins using offensive (points scored) and defensive (points allowed) performance. The blue bar represents the correlation between points scored and wins, while the red bar shows the correlation between points allowed and wins. The graph shows that offensive performance has a higher correlation with total wins compared to defensive performance."
+figure_4 <- nfl_data_clean |> 
+  summarise(
+    offensive_correlation = mean(c(
+      cor(wins, points_scored, use = "complete.obs")
+    ), na.rm = TRUE),
+    
+    defensive_correlation = mean(c(
+      cor(wins, points_allowed, use = "complete.obs")
+    ), na.rm = TRUE)
+  ) |> 
+  pivot_longer(cols = everything(), names_to = "Category", values_to = "Correlation") |> 
+  ggplot(aes(x = Category, y = Correlation, fill = Category)) + 
+  geom_bar(stat = "identity", width = 0.8) + 
+  scale_fill_manual(values = c("offensive_correlation" = "blue", "defensive_correlation" = "red")) + 
+  labs(
+    title = "Comparison of Offense vs Defense Correlation with Wins",
+    subtitle = "Offense has a higher correlation with total wins per season",
+    x = "Category",
+    y = "Correlation"
+  ) + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+ggsave("figures/figure_4.jpeg", plot = figure_4)
+print(figure_4)
+```
+The higher positive correlation between points scored and wins suggests that teams who can consistently score more points are more likely to win games. This aligns with common perceptions of the importance of offensive strength, as scoring more points generally leads to more victories in football. While defense is important in limiting opponents' scoring, the weaker correlation with wins suggests that allowing fewer points does not directly translate into as many wins. This could be due to a variety of factors such as offensive execution, turnovers, or special teams performance. However, it should not be overlooked that a consistently weak defense will not create a successful team, and teams with the most wins likely have a good defense and offense. The importance of both defense and offense are demonstrated in the tables below, as we compare teams with the best defense or offense with the best teams in the NFL based off total wins. 
+
+```{r}
+#| label: table-1
+#| echo: false
+nfl_data_clean |>
+  summarize(total_points_scored = sum(points_scored),
+            .by = team) |>
+  arrange(desc(total_points_scored))|>
+  head(3) |>
+  kable(col.names = c("Team", "Total Points Scored"),
+        caption = "Teams With the Best Offense in the NFL")
+```
+
+```{r}
+#| label: table-2
+#| echo: false
+nfl_data_clean |>
+  summarize(total_points_allowed = sum(points_allowed),
+            .by = team) |>
+  arrange(total_points_allowed) |>
+  head(3) |>
+  kable(col.names = c("Team", "Total Points Allowed"),
+        caption = "Teams With the Best Defense in the NFL")
+```
+
+```{r}
+#| label: table-3
+#| echo: false 
+nfl_data_clean |>
+  summarize(total_wins = sum(wins),
+            .by = team) |>
+  arrange(desc(total_wins)) |>
+  head(3) |>
+  kable(col.names = c("Team", "Total Wins"),
+        caption = "Best Football Teams in the NFL")
+```
+The New England Patriots, the New Orleans Saints, and the Green Bay Packers have the strongest offense and scored the most points throughout the NFL seasons. High offensive performance often correlates with a strong quarterback, skilled wide receivers, and a well-coordinated offensive line. Teams in this category likely win games by outscoring their opponents. The Baltimore Ravens, the New England Patriots, and the Pittsburgh Steelers have the strongest offense and allowed the fewest points during the seasons. A strong defense can decrease opposing teams’ scoring opportunities and they likely win games with lower overall scores. Defensive success is usually attributed to tackling, good coverage by the secondary, and the ability to force turnovers from the opposing team. The best teams in the NFL are measured by the total wins they have achieved over the 20 year period being analyzed. These teams are the New England Patriots, the Pittsburgh Steelers, and the Green Bay Packers. As seen previously, these teams have either one of the strongest defenses or one of the strongest offenses in the NFL. In the case of the best team in the league, the New England Patriots, they have the best offense and the second best defense in the NFL. This goes to show, that to be the most successful team in the NFL, you need to have a good offense and defense.
+
+Overall, this analysis emphasizes the importance of both the offensive and defensive performance for success in the NFL. While defensive capabilities are crucial for limiting opponents and creating opportunities, the ability to consistently score points is the more decisive factor in determining a team's overall success. The New England Patriots demonstrate the balance between a top-tier offense and defense, which has resulted in their domination during the 20 year period in the dataset. Of the top three best teams in the NFL during this time, the Patriots have a strong offense and defense, the Packers have a strong offense, and the Steelers have a strong defense. Ultimately, the most successful teams are those that excel in both areas, leveraging their strengths to adapt to different game scenarios and maintain consistent performance across seasons.
+
+After discovering the importance of offensive performance to team success, I was interested to see if different offensive plays were more indicative of higher wins. My main question was: **are rushing touchdowns or passing touchdowns more important for winning games?** This question delves deeper into the components of offensive performance, aiming to determine whether success on the ground or through passing is a better predictor of a team's ability to win games.
+
+```{r}
+#| label: fig-5
+#| echo: false
+#| fig-cap: "Correlation of touchdowns with wins. This bar chart compares the correlation between rushing touchdowns and passing touchdowns with total wins in the NFL. Passing touchdowns, represented in red, show a slightly stronger correlation with total wins. Rushing touchdowns, represented in blue, also contribute to wins but to a slightly lesser extent."
+figure_5 <- nfl_data_clean |> 
+  summarise(
+    rushing_touchdowns = cor(wins, rush_td, use = "complete.obs"),
+    passing_touchdowns = cor(wins, pass_td, use = "complete.obs")
+  ) |> 
+  pivot_longer(cols = everything(), names_to = "Type of Touchdown", values_to = "Correlation") |> 
+  ggplot(aes(x = `Type of Touchdown`, y = Correlation, fill = `Type of Touchdown`)) + 
+  geom_bar(stat = "identity", width = 0.8) + 
+  scale_fill_manual(values = c("rushing_touchdowns" = "blue", "passing_touchdowns" = "red")) + 
+  labs(
+    title = "Correlation of Touchdowns with Wins",
+    subtitle = "Passing touchdowns are a slightly higher indicator of total wins",
+    x = "Type of Touchdown",
+    y = "Correlation"
+  ) + 
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+ggsave("figures/figure_5.jpeg", plot = figure_5)
+print(figure_5)
+```
+```{r}
+#| label: table-4
+#| echo: false
+nfl_data_clean |>
+  summarize(total_passing_touchdowns = sum(pass_td),
+            .by = team) |>
+  arrange(desc(total_passing_touchdowns))|>
+  head(3) |>
+  kable(col.names = c("Team", "Total Passing Touchdowns"),
+        caption = "Teams With the Most Passing Touchdowns in the NFL")
+```
+
+The bar chart in @fig-4 visualizes the correlation between wins and the two types of touchdowns: rushing and passing. The analysis reveals that passing touchdowns have a slightly stronger correlation with total wins compared to rushing touchdowns. This suggests that teams with a more effective passing game tend to achieve more success in terms of victories. The higher correlation for passing touchdowns aligns with the modern NFL offense, where quarterbacks and wide receivers play a central role in offensive strategies. Teams with elite quarterbacks and passing offenses during these two decades, such as the New Orleans Saints and Green Bay Packers, have outperformed others in scoring and winning games. Additionally, the Patriots and the Packers are teams with both the highest number of wins and the most passing touchdowns in the NFL. This likely means that as passing touchdowns increase, games won will increase as well.  Conversely, while rushing touchdowns remain an important factor in offensive success, the slightly lower correlation indicates that a strong rushing strategy is not as important to overall team success. This analysis supports the idea that while a balanced offense is ideal, an efficient and productive passing game may be a more critical component for achieving sustained success in the NFL.
+
+The analysis of different variables influencing NFL team success reveals that offensive performance, particularly the ability to score points, has the strongest correlation with winning games. Among offensive plays, passing touchdowns show a slightly higher correlation with wins compared to rushing touchdowns, emphasizing the significance of a strong passing game and an effective quarterback. Defensive performance, while also important, shows a weaker correlation with total wins, suggesting that limiting opponents' scoring is less impactful than scoring points. The combined strength of both offense and defense is crucial for achieving sustained success, as evidenced by teams like the New England Patriots, who excel in both areas. Ultimately, while defense may secure championships, offense appears to be the primary driver of regular-season victories, and the biggest indicator of winning games in the NFL.
+
+### Analysis of Outliers in the Dataset
+While examining the factors that contribute to a team's success, I was interested to explore teams that deviate significantly from expectations based on their total wins. This curiosity is mainly driven by teams I have watched in the past who have amazing regular season games, but then cannot perform in the playoffs, such as the Baltimore Ravens in 2024. Similarly, there are teams who do not play well in the regular season, but do very well in the playoffs and can even win the Superbowl. This lead to the next question in my exploratory data analysis: **are there any teams that consistently overperform or underperform based on expected wins?** This was accomplished by using a linear regression model to predict wins based on points scored and points allowed, then calculating the difference between actual and predicted wins. The resulting chart in @fig-6 highlights the teams with the largest discrepancies, offering insights into factors like team culture, coaching, and situational performance that may cause teams to differ from their expected win percentage.
+```{r}
+#| label: fig-6
+#| echo: false
+#| fig-cap: "Teams that consistently overperform or underperform. This bar chart illustrates the difference between actual and predicted wins for each NFL team based on a linear regression model using points scored and points allowed. Positive values (green) represent teams that overperform, such as the Indianapolis Colts, while negative values (red) highlight teams that underperform, like the Los Angeles Chargers."
+model <- lm(wins ~ points_scored + points_allowed, data = nfl_data_clean)
+nfl_data_clean$expected_wins <- predict(model, newdata = nfl_data_clean)
+nfl_data_clean$win_difference <- nfl_data_clean$wins - nfl_data_clean$expected_wins
+
+figure_6 <- nfl_data_clean |> 
+  ggplot(aes(x = team, y = win_difference, fill = win_difference)) + 
+  geom_bar(stat = "identity", width = 0.7) +
+  scale_fill_gradient2(low = "red", high = "green", midpoint = 0) +
+  labs(title = "Teams Overperforming or Underperforming",
+       subtitle = "The Los Angeles Chargers seem to underperform the most on average\nwhile the Indianapolis Colts Overperform the most",
+       x = "Team",
+       y = "Win Difference",
+       fill = "Win Difference") + 
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+ggsave("figures/figure_6.jpeg", plot = figure_6)
+print(figure_6)
+```
+
+```{r}
+#| label: fig-7
+#| echo: false
+#| fig-cap: "Teams that consistently overperform or underperform. This heatmap visualizes the win difference for each NFL team based on the discrepancy between actual and predicted wins. Green indicates overperformance, as seen with the Colts and Steelers, while red indicates underperformance, such as by the Los Angeles Chargers."
+figure_7 <- ggplot(nfl_data_clean, aes(x = team, y = 1, fill = win_difference)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "red", high = "green", midpoint = 0) +
+  labs(title = "Teams Overperforming or Underperforming",
+       subtitle = "The Los Angeles Chargers seem to underperform the most on average\nwhile the Colts and Steelers overperform the most",
+       x = "Team",
+       y = " ",
+       fill = "Win Difference") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 60, hjust = 1),  
+    axis.text.y = element_blank()) +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+
+ggsave("figures/figure_7.jpeg", plot = figure_7)
+print(figure_7)
+```
+In @fig-6, the Colts emerge as one of the top overperformers, likely indicating a strong ability to execute in important moments, such as close games or during high-pressure situations. The Chargers appear to underperform the most, which could reflect an inability to coordinate offensive and defensive output into victories. Factors like turnovers, penalties, or poor performance in stressful games might explain these discrepancies. Interestingly, the Steelers also stand out as consistent overperformers despite being one of teams with the most wins in the dataset. This could either mean they are they best even though they are not predicted to be, or they somehow outperform their already expected wins total. Additionally, the New England Patriots underperform in comparison to their expectations, but they are still the team with the most wins in the dataset. This could be because, as one of the better teams, they have a harder schedule, so even when they score a lot of points, they may not win the game, leading to a higher win difference.
+
+The heatmap in @fig-7 reinforces these insights by providing a gradient of performance across all teams. Green shading represents the overperformers, such as the Colts and Steelers, while red shading represents the underperformers like the Chargers. This visual format allows for a quick comparative analysis of team performance across the league. An interesting data point in this graph is the Green Bay Packers having an overall win difference of zero. As one of the best teams in the league, I would think they would have a more challenging schedule and underperform like the Patriots. However, they are the only team in the NFL who has the same value for expected and actual wins. This demonstrates the Packers' consistency in converting statistical performance into wins, which is likely why they are one of the best teams in the league.
+
+The bar chart and the heatmap collectively provide a comprehensive view of how NFL teams have performed relative to expectations based on points scored and points allowed. The bar chart quantifies the win difference, highlighting teams like the Indianapolis Colts and Pittsburgh Steelers that have consistently outperformed expectations, and teams such as the Los Angeles Chargers that have underperformed based on expected wins. The heatmap complements this by visually categorizing the same win differences, making it easier to identify trends. Additionally, the linear model is hypothetical, so actual values may be less valuable than the trends produced by this analysis, making the heatmap a good compliment to the bar chart. Both of these visualizations illustrate how certain teams excel beyond the predicted limitations of their offense and defense, while others fall short of preseason expectations.
+
+After seeing the modeled trends for the teams in the NFL, I was interested in seeing the outliers for specific seasons in the NFL, not just outliers for the 20 year period. 
+
+```{r}
+#| label: fig-8
+#| echo: false
+#| fig-cap: "Win differences with outliers highlighted. This boxplot illustrates the distribution of win differences for NFL teams, calculated as the difference between actual wins and expected wins based on points scored and points allowed. Outlier teams are highlighted, with the Minnesota Vikings, Raiders, and Steelers having seasons where they overperform significantly, while the Cowboys and Falcons have seasons where they underperform"
+model <- lm(wins ~ points_scored + points_allowed, data = nfl_data_clean)
+nfl_data_clean$expected_wins <- predict(model, newdata = nfl_data_clean)
+nfl_data_clean$win_difference <- nfl_data_clean$wins - nfl_data_clean$expected_wins
+
+# calculate IQR for win_difference
+Q1_win_difference <- quantile(nfl_data_clean$win_difference, 0.25)
+Q3_win_difference <- quantile(nfl_data_clean$win_difference, 0.75)
+IQR_win_difference <- Q3_win_difference - Q1_win_difference
+
+# define outliers (values outside of Q1 - 1.3*IQR and Q3 + 1.3*IQR)
+outliers <- nfl_data_clean |> 
+  filter(win_difference < (Q1_win_difference - 1.3 * IQR_win_difference) | win_difference > (Q3_win_difference + 1.3 * IQR_win_difference))
+
+# create boxplot
+figure_8 <- ggplot(nfl_data_clean, aes(x = "", y = win_difference)) + 
+  geom_boxplot(fill = "pink", color = "black") + 
+  geom_point(data = outliers, aes(x = "", y = win_difference, color = team), size = 3) +
+  labs(title = "Win Differences with Outliers Highlighted by Season", 
+       subtitle = "The Minnesota Vikings overperform the most along with the Raiders and the Steelers\nwhile the Cowboys and the Falcons have underperforming seasons",
+       y = "Win Difference",
+       x = " ",
+       color = "Team") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5)   
+  )
+ggsave("figures/figure_8.jpeg", plot = figure_8)
+print(figure_8)
+```
+@fig-8 provides a comprehensive view of win differences for individual NFL team seasons, where "win difference" is the difference between actual and expected wins. The median is around zero, with a narrow range surrounding this average indicating that, in most seasons, teams perform close to their statistical expectations. However, the highlighted outliers reveal seasons where teams either significantly overperformed or underperformed compared to their predicted wins.
+
+The Minnesota Vikings, Raiders, and Steelers stand out as teams with notable overperforming seasons. During specific seasons, these teams achieved far more wins than their expected values based on their offensive and defensive statistics. This could be attributed to factors such as effective in-game decision-making, big plays at important moments, or an ability to perform well in close games that skew the results in their favor. Conversely, the Cowboys and Falcons are highlighted as teams with significant underperforming seasons, meaning their actual wins were far fewer than expected. Such discrepancies might be linked to an inability to perform in high-stress games, or external factors like injuries, poor coaching decisions, or tough schedules.
+
+By focusing on individual seasons rather than the complete 20-year period, the graph highlights the variability of the NFL. For example, while the Packers have a net zero win difference overall, they have a season where they significantly underperform. Similarly, the Cleveland Browns, the team with the least number of wins in the dataset, have a season where they significantly overperform and have a higher win total than expected. While long-term trends are useful for identifying general strengths and weaknesses, this season-level analysis uncovers unique performances that deviate from expectations, offering valuable insights into the dynamics of specific teams and years.
+
+### Analysis of Divisions and Conferences in the NFL
+After determining what variables impact wins and identifying the outliers that represent unique team performances, I wanted to analyze divisions and conferences to discover larger trends in the NFL. Understanding how teams perform within their divisions and conferences provides a more comprehensive view of league dynamics, revealing how consistent performance is distributed across the league. This analysis also helps contextualize the success of individual teams by examining the divisions in which they compete.
+
+I wanted to begin this analysis by determining the strength of each division to see which is the most competitive. This lead to the question **which divisions have the highest average wins per season?** Analyzing average wins across divisions provides insight into which NFL divisions and conferences have historically been the most competitive and successful. By grouping teams by their respective divisions, I can see the long-term performance of each division within the broader AFC and NFC conferences over the last 20 years.
+
+```{r}
+#| label: fig-9
+#| echo: false
+#| fig-cap: "Average wins by division within the AFC and NFC conferences over a 20-year period. The AFC East leads all divisions in average wins. In the NFC conference, the NFC East has the highest average wins, highlighting its competitive edge within the league."
+figure_9 <- nfl_data_clean |> 
+  group_by(conference, division) |> 
+  summarize(avg_wins = mean(wins)) |> 
+  ggplot(aes(x = division, y = avg_wins)) + 
+  geom_col(fill = "pink", color = "black") +
+  labs(
+    title = "Average Wins per Division",
+    subtitle = "The AFC east has the highest average wins over all eight divisions,\nand the NFC east has the most wins in the NFC conference",
+    x = "Division",
+    y = "Average Wins"
+  ) + 
+  theme_minimal() + 
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) + 
+  facet_wrap(~conference)  
+ggsave("figures/figure_9.jpeg", plot = figure_9)
+print(figure_9)
+```
+In @fig-9, the AFC East emerges as the standout division with the highest average wins across all eight divisions. This success can largely be attributed to consistently strong teams, most notably the New England Patriots, who dominated the NFL over the two decades analyzed. The Patriots' success not only elevated the overall performance of the AFC East but also contributed to their reputation as one of the most formidable teams in NFL history. Other teams in the division, such as the Buffalo Bills and Miami Dolphins, have also had periods of competitive play, further enhancing the division’s average performance. In the NFC conference, the NFC East has the most wins, reflecting higher success compared to other NFC divisions. This division includes historically competitive teams like the Dallas Cowboys, New York Giants, and Philadelphia Eagles, all of which had lots of success from 2003-2023.
+
+Overall, the AFC appears to be more competitive than the NFC, as shown by the AFC divisions having higher average win totals in general. This suggests that the AFC has been home to more dominant teams, particularly in the regular season when teams can gather more wins. The success of divisions like the AFC East reveals the importance of strong individual franchises in increasing divisional performance. Interestingly, the divisions in the NFC all have very similar win values, with no one division being overwhelmingly dominant. The AFC East is also not that much higher than the AFC North, although there is more variance in this conference. It is important to notice the trends and contextualize the dominance of different teams within their divisions, but there is not a huge difference between the conferences average wins.
+
+Building on the analysis of average wins across divisions and conferences, I wanted to investigate the competitiveness of each division in terms of playoff qualification. This lead to my next question: **is it harder to make the playoffs in certain divisions?** While the average wins of divisions provide a general view of long-term performance, analyzing only playoff teams offers a more focused approach to determine success in each division. This analysis highlights divisions where teams face tougher competition, as playoff qualification requires teams to be at the top of their division, or have a top regular season win percentage. By filtering the dataset for teams that made the playoffs and calculating their average wins by division and conference, I aimed to identify the most competitive divisions in the NFL for playoff contention.
+
+```{r}
+#| label: table-5
+#| echo: false
+nfl_data_clean |> 
+  filter(playoff == "Yes") |>  
+  group_by(conference, division) |> 
+  summarize(avg_wins_playoff = mean(wins, na.rm = TRUE)) |>
+  kable(col.names = c("Conference", "Division", "Average Wins"),
+        caption = "Average Wins for Playoff Teams by Conference and Division")
+```
+
+```{r}
+#| label: fig-10
+#| echo: false
+#| fig-cap: "Average wins for playoff teams by division. The AFC East leads the AFC with the highest average wins for playoff teams. In the NFC, the South division has the top spot, revealing the competitive nature of playoff qualification."
+figure_10 <- nfl_data_clean |> 
+  filter(playoff == "Yes") |>  
+  group_by(conference, division) |> 
+  summarize(avg_wins_playoff = mean(wins, na.rm = TRUE)) |>  
+  ggplot(aes(x = division, y = avg_wins_playoff)) + 
+  geom_col(fill = "pink", color = "black") +  
+  labs(title = "Average Wins for Playoff Teams by Division",
+       subtitle = "The AFC East has the highest average wins for playoff teams in the AFC,\nand the NFC South has the highest average wins for playoff teams in the NFC",
+       x = "Division", 
+       y = "Average Wins for Playoff Teams") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) + 
+  facet_wrap(~ conference)
+
+ggsave("figures/figure_10.jpeg", plot = figure_10)
+print(figure_10)
+```
+The bar chart in @fig-10 shows the average number of wins achieved by playoff teams in each division, separated by conference. This visualization offers valuable insights into the relative competitiveness of divisions, focusing on the win thresholds teams must meet or exceed to secure a playoff spot. In the AFC, the East division emerges as the most competitive, with playoff teams achieving the highest average wins compared to other divisions in the conference. This result is consistent with the dominance of teams like the New England Patriots, who set a high standard for playoff qualification in the division. The high average wins for AFC East playoff teams reflect the division's competitive nature, where playoff contention requires strong offensive and defensive performances. Within the NFC, the South division leads in average wins for playoff teams. This result suggests that teams in the NFC South face a more competitive environment, requiring a greater number of wins to secure playoff qualification. Teams like the New Orleans Saints and the Carolina Panthers have historically contributed to this elevated standard, often posting strong regular-season records.
+
+This data analysis reveals that the path to the playoffs varies across the NFL. Divisions like the AFC East and NFC South require higher win totals for playoff qualification, reflecting a higher level of competition in the division. Conversely, divisions with lower average wins for playoff teams may indicate more variability, where teams with fewer wins can still reach the postseason, and there is not a dominant team that makes the playoffs every year. These differences emphasize the role of divisional competition in deciding playoff teams, and accentuate how the strength of divisional rivals can influence a team's chances of advancing to the postseason. This analysis shows more of a difference between the divisions and can help us understand how different teams become dominant given their divisional competitions. 
+
+After examining the average wins for playoff teams across divisions, I wanted to focus on teams that have made it to the Super Bowl. This analysis led to my next question: **how is Superbowl performance correlated to total wins? Do teams with more regular season wins perform better in the Superbowl?** These results help identify which divisions and conferences have historically been more successful at producing Superbowl winning teams. By grouping teams based on their divisions and conferences, and filtering for Superbowl winners, I was able to analyze the distribution of top-performing teams over the past 20 years.
+
+```{r}
+#| label: table-6
+#| echo: false
+nfl_data_clean |> 
+  filter(superbowl == "Yes") |>  
+  group_by(conference, division) |> 
+  summarize(count = n()) |>
+  kable(col.names = c("Conference", "Division", "Number of Teams"),
+        caption = "Number of Teams from Each Conference and Division to Have Made the Super Bowl")
+
+```
+
+```{r}
+#| label: fig-11
+#| echo: false
+#| fig-cap: "Superbowl wins by conference and division. This barplot shows the distribution of Superbowl victories over the past 20 years, the AFC East leads with six wins."
+figure_11 <- nfl_data_clean |> 
+  filter(superbowl == "Yes") |> 
+  group_by(conference, division) |> 
+  summarize(count = n()) |> 
+  ggplot(aes(x = division, y = count, fill = division)) + 
+  geom_bar(stat = "identity") + 
+  labs(title = "Super Bowl Appearances by Division",
+       subtitle = "The AFC East has the highest number of superbowl appearances\nwith 6 teams in the past 20 years",
+       x = "Division", 
+       y = "Number of Teams in Super Bowl",
+       fill = "Division") + 
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) + 
+  facet_wrap(~conference)
+
+ggsave("figures/figure_11.jpeg", plot = figure_11)
+print(figure_11)
+```
+@fig-11 visually emphasizes the distribution of Super Bowl appearances by division within each conference. The AFC East clearly dominates, leading with six Superbowl wins over the past 20 years. This performance is largely driven by the New England Patriots, who won three Superbowls during this time and propelled the AFC East to the top of the rankings. In the NFC, the NFC East emerges as the leading division in terms of Superbowl victories. Teams like the Philadelphia Eagles and the New York Giants both had Superbowl victories during this time, showcasing their ability to compete at an elite level over multiple seasons.
+
+The bar chart also reveals disparities between divisions within the same conference. For example, while the AFC East has six victories, other AFC divisions like the AFC South have fewer, showing the uneven distribution of success. Similarly, the NFC North lags behind the rest of the NFC divisions in Superbowl victories, suggesting a concentration of top-performing teams in specific divisions. Overall, the graph shows that while all divisions have produced Superbowl winning teams, certain divisions, particularly the AFC East dominated the NFL in the 20 years analyzed.
+
+However, this does not accurately answer my question, as I can analyze trends, but want concrete data that shows how divisional wins correlate to Superbowl winning teams. For example, I see that the AFC east has both the highest number of average wins for playoff qualification and the most Superbowl winners, but it is harder to make these connections from distribution alone. @fig-12 shows the average number of wins for Superbowl winners from each division to aid in my understanding of the competitiveness of each division.
+
+```{r}
+#| label: fig-12
+#| echo: false
+#| fig-cap: "Boxplot of win distributions for Superbowl winning teams by division, separated by conference. The NFC North stands out with the highest win total of 15 for a Superbowl winning team in a single season."
+figure_12 <- nfl_data_clean |> 
+  filter(superbowl == "Yes") |> 
+  ggplot(aes(x = division, y = wins, fill = division)) + 
+  geom_boxplot() + 
+  labs(title = "Distribution of Wins for Super Bowl Teams by Division", 
+       subtitle = "The NFC North has the highest number of wins for a\nSuperbowl winning team at 15 wins in a season",
+       x = "Division", 
+       y = "Wins") + 
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) + 
+  facet_wrap(~conference)
+
+ggsave("figures/figure_12.jpeg", plot = figure_12)
+print(figure_12)
+```
+
+The NFC North shows the highest number of wins for a Superbowl winning team, reaching 15 wins in a season. This highlights that the Superbowl winner (The Green Bay Packers) Additionally, the AFC East has a narrow distribution of wins among its Superbowl victors, which could suggest consistently dominant performance levels. However the AFC North and NFC West have relatively low average wins for their Superbowl winning teams. This could be due to a variety of factors, such as highly competitive divisions, strong performance in the playoffs, and divisional matchups. Teams with a mediocre record can still find large success in the NFL as long as they qualify for the playoffs. Another thing to consider within this figure is the competitiveness of each division - in a division with better teams it will be harder to achieve more wins and vice versa, but ultimately the best team in the league is decided by postseason play. In general, the AFC appears to have more concentrated high-performing teams in terms of regular season wins, which is reflected in varying competitive dynamics between the conferences.
+
+The analysis of conferences and divisions provides an understanding of how different NFL regions contribute to team success and Superbowl victories. While the AFC East stands out as a dominant division with high average wins for playoff qualification and the most Superbowl winners, other divisions like the NFC East and NFC West also show success. These divisions have consistently sent strong teams to the postseason and, in several cases, to Super Bowl victories. Interestingly, the data highlights the variability within Superbowl success. Divisions like the AFC North and NFC West demonstrate that even teams with average regular season win totals can achieve postseason success, emphasizing the importance of postseason performance over regular season dominance.
+
+Overall, analysis of conferences and divisions has shown me the importance of contextualizing divisional performance beyond win totals, as factors like playoff qualification and postseason performance play significant roles in determining Superbowl champions.
+
+## Conclusion
+### Insights from the Data Analysis
+After conducting this exploratory data analysis, I have gained important insights into the NFL and how various metrics contribute to team success in both the regular season and postseason. By examining factors like offensive and defensive performance, the impact of specific offensive plays like passing and rushing touchdowns, and divisional/conference trends, I have identified key variables that correlate with regular-season wins and playoff success.
+
+Metrics like total points scored and allowed were shown to be important predictors of wins, emphasizing the balance required between a strong offense and a solid defense for teams in the NFL. It was found that offensive performance is a higher predictor of winning games than defensive performance, meaning teams with a stronger offense often see more success. However, the top teams in the NFL have both a strong offense and defense, like the New England Patriots. After examining the importance of offensive performance, subsequent analysis revealed that while passing touchdowns slightly outweigh rushing touchdowns in their correlation with wins, both contribute to team success, furthering our understanding of football offenses. 
+
+Additionally, understanding outlier teams that overperformed or underperformed relative to their predicted wins showed the variability in team performance over individual seasons. For example, the New England Patriots are in the AFC East, a very competitive division, so they underperform on average as their predicted wins based off points scored is much higher. This is because when the division is very competitive, high scoring games may still result in a loss. Conversely, the Las Vegas Raiders often overperform compared to preseason expectations. This could be due to unexpected performances or a strong defense that keeps games low scoring. By analyzing the performance of teams across the NFL, patterns of overperformance and underperformance emerge, providing valuable context for team outcomes.
+
+Analyzing divisional and conference trends showed the role of competitiveness within divisions, where average wins required for playoff qualification varies by division. Divisions like the AFC East, with consistently high average wins, often have dominant teams that perform well in both the regular season and postseason, resulting in six Superbowl wins from 2003-2023. Meanwhile, the examination of the average wins of Superbowl winning teams revealed how certain divisions have historically has Superbowl success, often despite a lower number of regular season wins. 
+
+These insights provide a comprehensive view of how different metrics interact to influence team performance, offering valuable tools for future predictive models and evaluating NFL success.
+
+### Future Work and Further Questions
+After analyzing different variables and metrics in the NFL, there are many avenues of exploration I want to pursue in the future. Adding onto the question about Superbowl prediction, I am interested in seeing if there are other metrics that predict Superbowl victories better than average wins (i.e. turnovers, points per game, rushing yards). Additionally, I want to explore player contributions to determine which positions have the highest influence on total wins. Finally, I think it would be interesting to analyze the concept of "home field advantage" and see how many games each team wins at home games versus at away games. This could reveal trends in how each team deals with high-pressure situations away from home and help predict whether a team will win if they are away. These curiosities lead to three major questions I would want to explore further:
+
+  1) Are there statistical indicators that can predict Super Bowl winners more effectively than average wins?
+  2) How do individual player statistics, such as quarterback ratings, correlate with team success in the regular season and playoffs? Which player positions are most significant in relation to total wins?
+  3) How does playing at home versus away impact win rates, especially in playoff games?
+  
+With these questions in mind, I hope to continue my exploration of this dataset to form a more comprehensive view of different NFL trends. 
+
+## References and Citations
+Kaggle. (2024). NFL Team Data 2003-2023 [Dataset]. [https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023](https://www.kaggle.com/datasets/nickcantalupa/nfl-team-data-2003-2023)
+
+“NFL History - Super Bowl Winners.” ESPN, ESPN Internet Ventures, [www.espn.com/nfl/superbowl/history/winners](www.espn.com/nfl/superbowl/history/winners)
+
+“Playoff Results, 1932-Present: Pro Football Hall of Fame.” Pfhof, [www.profootballhof.com/news/2005/01/news-playoff-results-1932-present/](www.profootballhof.com/news/2005/01/news-playoff-results-1932-present/)
+
+
+**Generative AI - ChatGPT**: I used ChatGPT to help me with a few different tasks during this final project. First, I used ChatGPT to help me with the linear model to predict expected wins based off points scored. I know the basic structure of how to write a linear model, but it was refined using AI. I also used AI to help me make the graphs look prettier, such as centering the titles and subtitles on the rendered graph. Additionally, ChatGPT was used to help me write certain analyses on graphs, but only to assist in orginal ideas - no ChatGPT was directly copied and pasted. I also used AI to help me create the pastel rainbow palatte seen in @fig-15 as a deeper exploration into penalties. 
+
+## Appendix: Technical Information
+Missingness visualizations for the raw and clean NFL dataset
+
+```{r}
+#| label: table-7
+#| echo: false
+miss_var_summary(nfl_data) |>
+  kable(col.names = c("Variable", "Number of Missing Observations", "Percent Missing"),
+        caption = "Summary of Missing Variables in the Raw NFL Dataset")
+```
+
+```{r}
+#| label: fig-13
+#| echo: false
+#| fig-cap: "Visualization of missing data in the NFL dataset. This plot shows the percentage of missing variables in the data and reveals which variables have the most missingness in the dataset. In this dataset, the ties and margin of victory variable have significant missingness"
+figure_13 <- vis_miss(nfl_data)
+ggsave("figures/figure_13.jpeg", plot = figure_13)
+print(figure_13)
+```
+
+```{r}
+#| label: table-8
+#| echo: false
+miss_var_summary(nfl_data_clean) |>
+  kable(col.names = c("Variable", "Number of Missing Observations", "Percent Missing"),
+        caption = "Summary of Missing Variables in the Clean NFL Dataset")
+```
+
+```{r}
+#| label: fig-14
+#| echo: false
+#| fig-cap: "Visualization of missing data in the NFL clean dataset. This plot shows the percentage of missing variables in the data and reveals which variables have the most missingness in the dataset. In this dataset, the only variable with missingness is the margin of victory variable"
+figure_14 <- vis_miss(nfl_data_clean)
+ggsave("figures/figure_14.jpeg", plot = figure_14)
+print(figure_14)
+```
+
+
+## Appendix: Extra Explorations
+### Analysis of Penalty Outliers
+
+Although this specific exploration is not necessarily relevant to any of the major questions in my data analysis, I thought it would be personally interesting to see the distribution of penalties in the NFL. Specifically, I wanted to explore the question: **are there any teams who recieve more penalties on average and if so, how does that correlate with wins?** This question arose as a curiosity from the outliers exploration as I wanted to see the outliers for penalties, but this exploration did not seem relevant to the main body of this report. 
+
+```{r}
+#| label: fig-15
+#| echo: false
+#| fig-cap: "Bar chart showing the frequency of penalties for each NFL team. The Las Vegas Raiders have the highest number of penalties, while the Indianapolis Colts have the fewest penalties against them."
+pastel_rainbow <- hue_pal(h = c(0, 360), c = 70, l = 80)(length(unique(nfl_data_clean$team)))
+
+figure_15 <- ggplot(nfl_data_clean, aes(x = team, y = penalties, fill = team)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = pastel_rainbow) +
+  labs(
+    title = "Frequency of Penalties per Team",
+    subtitle = "The Las Vegas Raiders have the most penalties in the NFL,\nand the Indianapolis Colts have the least penalties against them in the NFL",
+    x = "Team",
+    y = "Penalties"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),       
+    plot.subtitle = element_text(hjust = 0.5) 
+  )
+ggsave("figures/figure_15.jpeg", plot = figure_15)
+print(figure_15)
+```
+The bar chart in @fig-15 provides an in-depth look at the frequency of penalties by each NFL team, offering insights into gameplay tendencies within the NFL. The Las Vegas Raiders have the highest number of penalties, suggesting a more aggressive or less disciplined playing style. In contrast, the Indianapolis Colts have the fewest penalties, indicating a disciplined gameplay approach that likely focuses on minimizing errors and following the rules of the game. This could also point to coaching strategies emphasizing less aggressive tactics. However, while the rules of football are objective, oftentimes play calls by the referee can be subjective and open to scrutiny by players and coaches. I do believe this penalty distribution is likely a result of gameplay errors, it should not go without mentioning the bias inherant in referees. Overall, this chart shows the importance of minimizing penalties, as excessive penalties can have a significant impact on game outcomes.
+
+This chart led me to my next exploration, involving how penalties correlate with the number of wins in the regular season. 
+
+```{r}
+#| label: tabel-9
+#| echo: false
+nfl_data_clean |>
+  filter(team == c("Las Vegas Raiders", "Arizona Cardinals", "Baltimore Ravens",
+                   "Indianapolis Colts", "Atlanta Falcons", "New England Patriots")) |>
+  summarize(average_penalties = mean(penalties),
+            average_wins = mean(wins),
+            .by = team) |>
+  arrange(average_penalties) |>
+  kable(col.names = c("Team", "Average Number of Penalties", "Average Number of Wins"),
+        caption = "Number of Wins for the Teams with the Highest and Lowest Penalty Averages")
+```
+
+
+```{r}
+#| label: fig-16
+#| echo: false
+#| fig-cap: "This faceted scatter plot shows the relationship between penalties and wins for six selected NFL teams: Las Vegas Raiders, Arizona Cardinals, Baltimore Ravens, Indianapolis Colts, Atlanta Falcons, and New England Patriots. Each plot focuses on a single team, showing their specific relationship between penalties and regular season wins."
+figure_16 <- nfl_data_clean |> 
+  filter(team %in% c("Las Vegas Raiders", "Arizona Cardinals", "Baltimore Ravens", 
+                     "Indianapolis Colts", "Atlanta Falcons", "New England Patriots")) |> 
+  ggplot(aes(x = penalties, y = wins, color = team)) + 
+  geom_point(alpha = 0.9) + 
+  facet_wrap(~team) + 
+  labs(title = "Penalties vs Wins for Selected NFL Teams",
+       subtitle = "Less penalties correlate with a higher number of wins in the NFL",
+       x = "Penalties",
+       y = "Wins") + 
+  theme_minimal() + 
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5),       
+        plot.subtitle = element_text(hjust = 0.5))
+ggsave("figures/figure_16.jpeg", plot = figure_16)
+print(figure_16)
+```
+
+@fig-16 explores the relationship between penalties and wins for six selected NFL teams, showing the data in different facets for each team. The unique scatter plots highlight how penalty counts and win totals correlate differently depending on the team. The New England Patriots, Atlanta Falcons, and Indianapolis Colts were chosen because they have the three lowest number of penalties in the NFL, and the Baltimore Ravens, Arizona Cardinals, and Las Vegas Raiders were chosen because they have the three highest penalty numbers in the NFL. Most teams, including the Indianapolis Colts, New England Patriots, and Baltimore Ravens, display an inverse relationship between penalties and wins. This means that teams who incur fewer penalties tend to have higher win totals, reinforcing the idea that clean play is important to a team's success. The Raiders have the highest number of penalties in the NFL and, subsequently, have lower win percentages than other teams. The New England Patriots have the lowest number of penalties by far, which is no surprise because they are a dominant team in the league. There are also certain teams like the Ravens and the Falcons that show a more dispersed pattern, with high penalties resulting in moderate win totals. This is likely due to other factors such as high offensive scoring or elite performance that mitigate the penalties. Overall, this graph shows evidence of penalties' effect on team success, with fewer penalties correlating with more wins.
+
+With this relationship in mind, I wanted to see specific seasons where teams had an unusual amount of penalties. This is less for a specific need or understanding, and more out of curiosity, but I think it can provide valuable insight into the variability of the NFL.
+
+```{r}
+#| label: fig-17
+#| echo: false
+#| fig-cap: "Boxplot of penalties for NFL teams, highlighting outlier seasons with exceptionally high or low penalty counts. The Las Vegas Raiders have two seasons featuring significantly high penalties, while the Atlanta Falcons have a season with the lowest penalty count in the dataset."
+# make a boxplot to show the outlier seasons - which teams had a lot of penalties for different seasons
+# calculate IQR for penalties
+Q1 <- quantile(nfl_data_clean$penalties, 0.25, na.rm = TRUE)
+Q3 <- quantile(nfl_data_clean$penalties, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+# define outliers (values outside of Q1 - 1.7*IQR and Q3 + 1.7*IQR)
+outliers_penalties <- nfl_data_clean |> 
+  filter(penalties < (Q1 - 1.7 * IQR) | penalties > (Q3 + 1.7 * IQR))
+
+# create the boxplot with outliers highlighted for penalties
+Q1_penalties <- quantile(nfl_data_clean$penalties, 0.25)
+Q3_penalties <- quantile(nfl_data_clean$penalties, 0.75, na.rm = TRUE)
+IQR_penalties <- Q3_penalties - Q1_penalties
+
+# define outliers (values outside of Q1 - 1.6*IQR and Q3 + 1.6*IQR)
+outliers_penalties <- nfl_data_clean |> 
+  filter(penalties < (Q1_penalties - 1.6 * IQR_penalties) | penalties > (Q3_penalties + 1.6 * IQR_penalties))
+
+# create the boxplot with outliers highlighted
+figure_17 <- ggplot(nfl_data_clean, aes(x = "", y = penalties)) + 
+  geom_boxplot(fill = "pink", color = "black", outlier.shape = NA) +  # Suppress default outliers
+  geom_point(data = outliers_penalties, aes(x = "", y = penalties, color = team), size = 3) +
+  labs(
+    title = "Boxplot of Penalties with Outliers Highlighted",
+    subtitle = "The Las Vegas Raiders have two seasons with an exceptionally high number of penalties\nwhile the Atlanta Falcons have a season with the lowest number of penalties",
+    y = "Penalties",
+    x = " ",
+    color = "Team"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+ggsave("figures/figure_17.jpeg", plot = figure_17)
+print(figure_17)
+
+```
+The boxplot in @fig-17 shows the variability in the number of penalties committed by NFL teams over the seasons, with an emphasis on outlier performances. The majority of seasons for all teams fall within a narrow range of penalties, suggesting some level of consistency in how penalties are distributed across teams and seasons. However, there are certain teams that deviate from the norm and raise certain questions about the style of their gameplay. The Las Vegas Raiders stand out with two seasons featuring high penalty counts. This suggests recurring issues with discipline or an aggressive playing style during specific seasons resulting in the rules of football being broken. In contrast, the Atlanta Falcons had a season with the lowest number of penalties in the dataset, indicating a highly disciplined performance that minimized rule violations in one specific season.
+
+This analysis does not answer many questions, but does allow for the possibility of future research into playing styles and coaching strategies that may impact the statistical significance of these numbers. I did not include it in the main report because it did not have a linear line of thinking or analysis, but I found it fascinating, so I wanted to include it in the appendix for further reading if desired. 
+
+
